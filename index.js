@@ -55,6 +55,29 @@ app.post('/cart', async (req, res) => {
     }
 });
 
+// Delete product from cart
+app.delete('/cart', async (req, res) => {
+    const { userId, productId } = req.body;
+    if (!userId || !productId) {
+        return res.status(400).json({ message: 'userId and productId are required' });
+    }
+
+    try {
+        const cart = await Cart.findOne({ userId });
+
+        if (!cart) {
+            return res.status(404).json({ message: 'Cart not found' });
+        }
+
+        cart.products = cart.products.filter(p => p.productId.toString() !== productId);
+        await cart.save();
+
+        res.json(cart);
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing from cart' });
+    }
+});
+
 // Get user cart
 app.get('/cart/:userId', async (req, res) => {
     try {
@@ -85,6 +108,29 @@ app.post('/wishlist', async (req, res) => {
         res.json(wishlist);
     } catch (error) {
         res.status(500).json({ message: 'Error adding to wishlist' });
+    }
+});
+
+//Delete product from wishlist
+app.delete('/wishlist', async (req, res) => {
+    const { userId, productId } = req.body;
+    if (!userId || !productId) {
+        return res.status(400).json({ message: 'userId and productId are required' });
+    }
+
+    try {
+        const wishlist = await Wishlist.findOne({ userId });
+
+        if (!wishlist) {
+            return res.status(404).json({ message: 'Wishlist not found' });
+        }
+
+        wishlist.products = wishlist.products.filter(p => p.productId.toString() !== productId);
+        await wishlist.save();
+
+        res.json(wishlist);
+    } catch (error) {
+        res.status(500).json({ message: 'Error removing from wishlist' });
     }
 });
 

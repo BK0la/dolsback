@@ -34,25 +34,24 @@ app.get('/products', async (req, res) => {
 
 // Add product to cart
 app.post('/cart', async (req, res) => {
-    const { userId, productId, size } = req.body;
-    if (!userId || !productId || !size) {
-        return res.status(400).json({ message: 'userId, productId и size обязательны' });
+    const { userId, productId } = req.body;
+    if (!userId || !productId) {
+        return res.status(400).json({ message: 'userId and productId are required' });
     }
 
     try {
         let cart = await Cart.findOne({ userId });
 
         if (!cart) {
-            cart = new Cart({ userId, products: [{ productId, size }] });
+            cart = new Cart({ userId, products: [{ productId }] });
         } else {
-            // Добавляем продукт с учетом размера
-            cart.products.push({ productId, size });
+            cart.products.push({ productId });
         }
 
         await cart.save();
         res.json(cart);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при добавлении в корзину' });
+        res.status(500).json({ message: 'Error adding to cart' });
     }
 });
 
@@ -60,26 +59,24 @@ app.post('/cart', async (req, res) => {
 app.delete('/cart', async (req, res) => {
     const { userId, productId } = req.body;
     if (!userId || !productId) {
-        return res.status(400).json({ message: 'userId и productId обязательны' });
+        return res.status(400).json({ message: 'userId and productId are required' });
     }
 
     try {
         const cart = await Cart.findOne({ userId });
 
         if (!cart) {
-            return res.status(404).json({ message: 'Корзина не найдена' });
+            return res.status(404).json({ message: 'Cart not found' });
         }
 
-        // Удаляем продукт по productId
         cart.products = cart.products.filter(p => p.productId.toString() !== productId);
         await cart.save();
 
         res.json(cart);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при удалении из корзины' });
+        res.status(500).json({ message: 'Error removing from cart' });
     }
 });
-
 
 // Get user cart
 app.get('/cart/:userId', async (req, res) => {
@@ -87,10 +84,9 @@ app.get('/cart/:userId', async (req, res) => {
         const cart = await Cart.findOne({ userId: req.params.userId }).populate('products.productId');
         res.json(cart);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при получении корзины' });
+        res.status(500).json({ message: 'Error retrieving cart' });
     }
 });
-
 
 // Add product to wishlist
 app.post('/wishlist', async (req, res) => {

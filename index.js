@@ -43,17 +43,26 @@ app.post('/cart', async (req, res) => {
         let cart = await Cart.findOne({ userId });
 
         if (!cart) {
-            cart = new Cart({ userId, products: [{ productId }] });
+            cart = new Cart({
+                userId,
+                products: [{ productId, quantity: 1 }]
+            });
         } else {
-            cart.products.push({ productId });
+            const productInCart = cart.products.find(p => p.productId.toString() === productId);
+            if (productInCart) {
+                productInCart.quantity += 1;
+            } else {
+                cart.products.push({ productId, quantity: 1 });
+            }
         }
 
         await cart.save();
         res.json(cart);
     } catch (error) {
-        res.status(500).json({ message: 'Error adding to cart' });
+        res.status(500).json({ message: 'Error adding to cart...' });
     }
 });
+
 
 // Delete product from cart
 app.delete('/cart', async (req, res) => {
@@ -69,14 +78,22 @@ app.delete('/cart', async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        cart.products = cart.products.filter(p => p.productId.toString() !== productId);
-        await cart.save();
+        const productInCart = cart.products.find(p => p.productId.toString() === productId);
+        if (productInCart) {
+            if (productInCart.quantity > 1) {
+                productInCart.quantity -= 1;
+            } else {
+                cart.products = cart.products.filter(p => p.productId.toString() !== productId);
+            }
+        }
 
+        await cart.save();
         res.json(cart);
     } catch (error) {
         res.status(500).json({ message: 'Error removing from cart' });
     }
 });
+
 
 // Get user cart
 app.get('/cart/:userId', async (req, res) => {

@@ -78,16 +78,9 @@ app.delete('/cart', async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        const productInCart = cart.products.find(p => p.productId.toString() === productId);
-        if (productInCart) {
-            if (productInCart.quantity > 1) {
-                productInCart.quantity -= 1;
-            } else {
-                cart.products = cart.products.filter(p => p.productId.toString() !== productId);
-            }
-        }
-
+        cart.products = cart.products.filter(p => p.productId.toString() !== productId);
         await cart.save();
+
         res.json(cart);
     } catch (error) {
         res.status(500).json({ message: 'Error removing from cart' });

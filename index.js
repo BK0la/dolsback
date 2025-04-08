@@ -34,9 +34,9 @@ app.get('/products', async (req, res) => {
 
 // Add product to cart
 app.post('/cart', async (req, res) => {
-    const { userId, productId } = req.body;
-    if (!userId || !productId) {
-        return res.status(400).json({ message: 'userId and productId are required' });
+    const { userId, productId, size } = req.body;  // Теперь size ожидается в теле запроса
+    if (!userId || !productId || !size) {
+        return res.status(400).json({ message: 'userId, productId, and size are required' });
     }
 
     try {
@@ -52,20 +52,24 @@ app.post('/cart', async (req, res) => {
                 userId,
                 products: [{
                     productId,
+                    size,
                     quantity: 1,
-                    totalPrice: product.price
-                }]
+                    totalPrice: product.price,
+                }],
             });
         } else {
-            const productInCart = cart.products.find(p => p.productId.toString() === productId);
+            const productInCart = cart.products.find(
+                (p) => p.productId.toString() === productId && p.size === size
+            );
             if (productInCart) {
                 productInCart.quantity += 1;
                 productInCart.totalPrice = product.price * productInCart.quantity;
             } else {
                 cart.products.push({
                     productId,
+                    size,
                     quantity: 1,
-                    totalPrice: product.price
+                    totalPrice: product.price,
                 });
             }
         }
@@ -79,11 +83,12 @@ app.post('/cart', async (req, res) => {
 
 
 
+
 // Delete product from cart
 app.delete('/cart', async (req, res) => {
-    const { userId, productId } = req.body;
-    if (!userId || !productId) {
-        return res.status(400).json({ message: 'userId and productId are required' });
+    const { userId, productId, size } = req.body;
+    if (!userId || !productId || !size) {
+        return res.status(400).json({ message: 'userId, productId and size are required' });
     }
 
     try {
@@ -93,7 +98,10 @@ app.delete('/cart', async (req, res) => {
             return res.status(404).json({ message: 'Cart not found' });
         }
 
-        cart.products = cart.products.filter(p => p.productId.toString() !== productId);
+        cart.products = cart.products.filter(
+            (p) => p.productId.toString() !== productId || p.size !== size
+        );
+
         await cart.save();
 
         res.json(cart);
@@ -102,45 +110,50 @@ app.delete('/cart', async (req, res) => {
     }
 });
 
+
 //Update product quantity
 app.patch('/cart', async (req, res) => {
-    const { userId, productId, operation } = req.body;
+    const { userId, productId, size, operation } = req.body;
 
-    if (!userId || !productId || !operation) {
-        return res.status(400).json({ message: 'userId, productId и operation обязательны' });
+    if (!userId || !productId || !size || !operation) {
+        return res.status(400).json({ message: 'userId, productId, size and operation are required' });
     }
 
     try {
         const cart = await Cart.findOne({ userId }).populate('products.productId');
 
         if (!cart) {
-            return res.status(404).json({ message: 'Корзина не найдена' });
+            return res.status(404).json({ message: 'Cart not found' });
         }
 
-        const productInCart = cart.products.find(p => p.productId._id.toString() === productId);
+        const productInCart = cart.products.find(
+            (p) => p.productId._id.toString() === productId && p.size === size
+        );
 
         if (!productInCart) {
-            return res.status(404).json({ message: 'Товар не найден в корзине' });
+            return res.status(404).json({ message: 'Product not found in cart' });
         }
 
-        // Изменяем количество
+        // Modify quantity
         if (operation === 'increment') {
             productInCart.quantity += 1;
         } else if (operation === 'decrement') {
             productInCart.quantity = Math.max(1, productInCart.quantity - 1);
         }
 
+        productInCart.totalPrice = productInCart.productId.price * productInCart.quantity; // Update total price
+
         await cart.save();
 
-        // Подгружаем с обновлённой ценой
+        // Return updated cart
         const updatedCart = await Cart.findOne({ userId }).populate('products.productId');
-
         res.json(updatedCart);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Ошибка при обновлении корзины' });
+        res.status(500).json({ message: 'Error updating cart' });
     }
 });
+
 
 
 

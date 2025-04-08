@@ -40,19 +40,33 @@ app.post('/cart', async (req, res) => {
     }
 
     try {
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
         let cart = await Cart.findOne({ userId });
 
         if (!cart) {
             cart = new Cart({
                 userId,
-                products: [{ productId, quantity: 1 }]
+                products: [{
+                    productId,
+                    quantity: 1,
+                    totalPrice: product.price
+                }]
             });
         } else {
             const productInCart = cart.products.find(p => p.productId.toString() === productId);
             if (productInCart) {
                 productInCart.quantity += 1;
+                productInCart.totalPrice = product.price * productInCart.quantity;
             } else {
-                cart.products.push({ productId, quantity: 1 });
+                cart.products.push({
+                    productId,
+                    quantity: 1,
+                    totalPrice: product.price
+                });
             }
         }
 
@@ -62,6 +76,7 @@ app.post('/cart', async (req, res) => {
         res.status(500).json({ message: 'Error adding to cart...' });
     }
 });
+
 
 
 // Delete product from cart

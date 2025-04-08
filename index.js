@@ -102,6 +102,47 @@ app.delete('/cart', async (req, res) => {
     }
 });
 
+//Update product quantity
+app.patch('/cart', async (req, res) => {
+    const { userId, productId, operation } = req.body;
+
+    if (!userId || !productId || !operation) {
+        return res.status(400).json({ message: 'userId, productId и operation обязательны' });
+    }
+
+    try {
+        const cart = await Cart.findOne({ userId }).populate('products.productId');
+
+        if (!cart) {
+            return res.status(404).json({ message: 'Корзина не найдена' });
+        }
+
+        const productInCart = cart.products.find(p => p.productId._id.toString() === productId);
+
+        if (!productInCart) {
+            return res.status(404).json({ message: 'Товар не найден в корзине' });
+        }
+
+        // Изменяем количество
+        if (operation === 'increment') {
+            productInCart.quantity += 1;
+        } else if (operation === 'decrement') {
+            productInCart.quantity = Math.max(1, productInCart.quantity - 1);
+        }
+
+        await cart.save();
+
+        // Подгружаем с обновлённой ценой
+        const updatedCart = await Cart.findOne({ userId }).populate('products.productId');
+
+        res.json(updatedCart);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Ошибка при обновлении корзины' });
+    }
+});
+
+
 
 // Get user cart
 app.get('/cart/:userId', async (req, res) => {

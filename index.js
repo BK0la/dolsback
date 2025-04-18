@@ -1,11 +1,15 @@
 import express from 'express';
 import mongoose from 'mongoose';
+
 import fs from 'fs';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 import Product from './models/Product.js';
 import Cart from './models/Cart.js';
 import Wishlist from './models/Wishlist.js';
+import Order from './models/Order.js';
+
 
 dotenv.config();
 
@@ -155,8 +159,6 @@ app.patch('/cart', async (req, res) => {
 });
 
 
-
-
 // Get user cart
 app.get('/cart/:userId', async (req, res) => {
     try {
@@ -166,6 +168,7 @@ app.get('/cart/:userId', async (req, res) => {
         res.status(500).json({ message: 'Error retrieving cart' });
     }
 });
+
 
 // Add product to wishlist
 app.post('/wishlist', async (req, res) => {
@@ -222,6 +225,51 @@ app.get('/wishlist/:userId', async (req, res) => {
         res.status(500).json({ message: 'Error retrieving wishlist' });
     }
 });
+
+// Add new order
+app.post('/orders', async (req, res) => {
+    const { userId, street, house, zip, city, firstName, lastName, email, phone, paymentMethod } = req.body;
+
+    if (!userId || !street || !house || !zip || !city || !firstName || !lastName || !email || !phone || !paymentMethod) {
+        return res.status(400).json({ message: 'Missing order fields' });
+    }
+
+    try {
+        const order = new Order({
+            userId,
+            street,
+            house,
+            zip,
+            city,
+            firstName,
+            lastName,
+            email,
+            phone,
+            paymentMethod
+        });
+
+        await order.save();
+
+        // Очищаем содержимое корзины
+        await Cart.updateOne({ userId }, { $set: { products: [] } });
+
+        res.status(201).json(order);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error creating order' });
+    }
+});
+
+// Get orders for a specific user
+app.get('/orders/:userId', async (req, res) => {
+    try {
+        const orders = await Order.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving orders' });
+    }
+});
+
 
 // Function to load products from file into database
 async function loadProducts() {

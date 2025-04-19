@@ -230,8 +230,17 @@ app.get('/wishlist/:userId', async (req, res) => {
 app.post('/orders', async (req, res) => {
     const { productId, userId, street, house, zip, city, firstName, lastName, email, phone, paymentMethod } = req.body;
 
-    if (!productId || !userId || !street || !house || !zip || !city || !firstName || !lastName || !email || !phone || !paymentMethod) {
-        return res.status(400).json({ message: 'Missing order fields' });
+    // Приводим productId к массиву, если это не массив
+    if (!Array.isArray(productId)) {
+        productId = [productId];
+    }
+
+    if (
+        productId.length === 0 ||
+        !userId || !street || !house || !zip || !city ||
+        !firstName || !lastName || !email || !phone || !paymentMethod
+    ) {
+        return res.status(400).json({ message: 'Missing or invalid order fields' });
     }
 
     try {

@@ -228,14 +228,15 @@ app.get('/wishlist/:userId', async (req, res) => {
 
 // Add new order
 app.post('/orders', async (req, res) => {
-    const { userId, street, house, zip, city, firstName, lastName, email, phone, paymentMethod } = req.body;
+    const { productId, userId, street, house, zip, city, firstName, lastName, email, phone, paymentMethod } = req.body;
 
-    if (!userId || !street || !house || !zip || !city || !firstName || !lastName || !email || !phone || !paymentMethod) {
+    if (!productId || !userId || !street || !house || !zip || !city || !firstName || !lastName || !email || !phone || !paymentMethod) {
         return res.status(400).json({ message: 'Missing order fields' });
     }
 
     try {
         const order = new Order({
+            productId,
             userId,
             street,
             house,

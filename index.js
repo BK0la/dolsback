@@ -228,15 +228,32 @@ app.get('/wishlist/:userId', async (req, res) => {
 
 // Add new order
 app.post('/orders', async (req, res) => {
-    const { productId, userId, street, house, zip, city, firstName, lastName, email, phone, paymentMethod } = req.body;
+    let {
+        productId,
+        quantities, // <-- добавлено
+        userId,
+        street,
+        house,
+        zip,
+        city,
+        firstName,
+        lastName,
+        email,
+        phone,
+        paymentMethod
+    } = req.body;
 
-    // Приводим productId к массиву, если это не массив
     if (!Array.isArray(productId)) {
         productId = [productId];
     }
 
+    if (!Array.isArray(quantities)) {
+        quantities = [quantities];
+    }
+
     if (
         productId.length === 0 ||
+        quantities.length !== productId.length || // <-- проверка
         !userId || !street || !house || !zip || !city ||
         !firstName || !lastName || !email || !phone || !paymentMethod
     ) {
@@ -246,6 +263,7 @@ app.post('/orders', async (req, res) => {
     try {
         const order = new Order({
             productId,
+            quantities,
             userId,
             street,
             house,
@@ -260,7 +278,6 @@ app.post('/orders', async (req, res) => {
 
         await order.save();
 
-        // Очищаем содержимое корзины
         await Cart.updateOne({ userId }, { $set: { products: [] } });
 
         res.status(201).json(order);
@@ -269,6 +286,7 @@ app.post('/orders', async (req, res) => {
         res.status(500).json({ message: 'Error creating order' });
     }
 });
+
 
 // Get orders for a specific user
 app.get('/orders/:userId', async (req, res) => {
